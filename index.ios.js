@@ -27,11 +27,11 @@ const itemsRef = rootRef.child('items');
 class StoreList extends Component {
   constructor(props) {
     super(props);
-
     this.state = {
-      dataSource: new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2}),
+      dataSource: new ListView.DataSource({
+        rowHasChanged: (row1, row2) => row1 !== row2,
+      })
     };
-
     this.itemsRef = this.getRef().child('items');
   }
 
@@ -39,12 +39,10 @@ class StoreList extends Component {
     return firebaseApp.database().ref();
   }
 
-  componentDidMount() {
-    this.listenForItems(this.itemsRef);
-  }
-
   listenForItems(itemsRef) {
     itemsRef.on('value', (snap) => {
+
+      // get children as an array
       var items = [];
       snap.forEach((child) => {
         items.push({
@@ -56,35 +54,38 @@ class StoreList extends Component {
       this.setState({
         dataSource: this.state.dataSource.cloneWithRows(items)
       });
+
     });
   }
 
-  _renderItem(item) {
-    return (
-      <ListItem item={item} />
-    );
+  componentDidMount() {
+    this.listenForItems(this.itemsRef);
   }
 
   render() {
     return (
       <View style={styles.container}>
-        <StatusBar title="Store List" />
 
-        <ListView dataSource={this.state.dataSource} 
-                  renderRow={this._renderItem.bind(this)} 
-                  enableEmptySections={true}
-                  style={styles.listview} />
+        <StatusBar title="Grocery List" />
 
-        <ActionButton title="Add" onPress={this._addItem.bind(this)}/>
+        <ListView
+          dataSource={this.state.dataSource}
+          renderRow={this._renderItem.bind(this)}
+          enableEmptySections={true}
+          style={styles.listview}/>
+
+        <ActionButton onPress={this._addItem.bind(this)} title="Add" />
+
       </View>
-    );
+    )
   }
 
   _addItem() {
     AlertIOS.prompt(
-      'Add new item',
+      'Add New Item',
       null,
       [
+        {text: 'Cancel', onPress: () => console.log('Cancel Pressed'), style: 'cancel'},
         {
           text: 'Add',
           onPress: (text) => {
@@ -92,10 +93,29 @@ class StoreList extends Component {
           }
         },
       ],
-
       'plain-text'
     );
   }
+
+  _renderItem(item) {
+
+    const onPress = () => {
+      AlertIOS.prompt(
+        'Complete',
+        null,
+        [
+          {text: 'Complete', onPress: (text) => this.itemsRef.child(item._key).remove()},
+          {text: 'Cancel', onPress: (text) => console.log('Cancelled')}
+        ],
+        'default'
+      );
+    };
+
+    return (
+      <ListItem item={item} onPress={onPress} />
+    );
+  }
+
 }
 
 
